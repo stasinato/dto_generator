@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dto_generator/src/utils/string_utils.dart';
+import 'package:dto_generator/src/generator.dart';
 
 /// A global map of schema signatures to class names, so we don't generate duplicates
 final Map<String, String> _inlineSchemaSignatures = {};
@@ -21,8 +22,8 @@ String mapSwaggerTypeToDartType(
   Map<String, dynamic> definitions,
   Map<String, String> schemaToClassName,
   Set<String> imports, {
-  String? propertyName,
-  bool isJsonInput = false,
+  required String propertyName,
+  required bool isJsonInput,
   Map<String, Map<String, dynamic>>? inlineNestedDtos,
 }) {
   if (schema['\$ref'] != null) {
@@ -88,14 +89,14 @@ String mapSwaggerTypeToDartType(
       return 'Map<String, dynamic>';
 
     case 'array':
-      final items = schema['items'] as Map<String, dynamic>?;
-      if (items != null) {
-        final itemType = mapSwaggerTypeToDartType(
-            items, definitions, schemaToClassName, imports,
-            propertyName: propertyName,
-            isJsonInput: isJsonInput,
-            inlineNestedDtos: inlineNestedDtos);
-        return 'List<$itemType>';
+      final itemSchema = schema['items'];
+      if (itemSchema is Map<String, dynamic>) {
+        if (itemSchema['type'] == 'object' && itemSchema['properties'] is Map) {
+          // For object arrays, use the property name as the type
+          final itemClassName = capitalize(propertyName);
+          return 'List<${itemClassName}ResponseDto>';
+        }
+        return 'List<${mapSwaggerTypeToDartType(itemSchema, definitions, schemaToClassName, imports, propertyName: propertyName, isJsonInput: isJsonInput)}>';
       }
       return 'List<dynamic>';
 
