@@ -5,9 +5,6 @@ import 'package:dto_generator/src/generator.dart';
 /// A global map of schema signatures to class names, so we don't generate duplicates
 final Map<String, String> _inlineSchemaSignatures = {};
 
-/// Counter used for generating unique inline DTO names
-int _inlineDtoCounter = 0;
-
 /// Returns true if the given schema (which must have "properties") is considered "small".
 /// Here, small means having 3 or fewer properties.
 bool isSmallNestedObject(Map<String, dynamic> schema) {
