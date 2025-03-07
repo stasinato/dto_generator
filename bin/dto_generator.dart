@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:yaml/yaml.dart';
+import 'package:dto_generator/dto_generator.dart';
 
 int _inlineDtoCounter = 0; // used for generating unique inline DTO names
 
@@ -8,11 +9,11 @@ int _inlineDtoCounter = 0; // used for generating unique inline DTO names
 final Map<String, String> _inlineSchemaSignatures = {};
 
 /// Returns true if the given schema (which must have "properties") is considered "small".
-/// Here, small means having 3 or fewer properties.
+/// Here, small means having 4 or fewer properties.
 bool _isSmallNestedObject(Map<String, dynamic> schema) {
   if (!schema.containsKey('properties')) return false;
   final properties = schema['properties'] as Map;
-  return properties.length <= 3;
+  return properties.length <= 4;
 }
 
 /// A Dart script that parses a Swagger/OpenAPI file (in JSON or YAML format)
@@ -24,158 +25,24 @@ bool _isSmallNestedObject(Map<String, dynamic> schema) {
 /// Usage:
 ///   dart generate_dtos.dart [path_to_swagger_file.yaml or .json] [output_directory]
 void main(List<String> args) async {
-  // 1. Get the path to the Swagger/OpenAPI file.
-  final swaggerFilePath = args.isNotEmpty ? args.first : 'swagger.yaml';
-  // Determine if the input is JSON.
-  final bool isJsonInput = swaggerFilePath.toLowerCase().endsWith('.json');
-
-  // 2. Directory where generated *.dart files will be created.
-  final outputDirPath = args.length > 1 ? args[1] : 'generated_dtos';
-  final outputDir = Directory(outputDirPath);
-  if (!outputDir.existsSync()) {
-    outputDir.createSync(recursive: true);
+  if (args.isEmpty) {
+    print(
+        'Usage: dart generate_dtos.dart [path_to_swagger_file.yaml or .json] [output_directory]');
+    return;
   }
 
-  // 3. Read and parse the file.
-  final File swaggerFile = File(swaggerFilePath);
-  if (!swaggerFile.existsSync()) {
-    print('Error: File not found at $swaggerFilePath');
-    exit(1);
-  }
-  final fileContent = swaggerFile.readAsStringSync();
-
-  dynamic parsedData;
   try {
-    if (swaggerFilePath.toLowerCase().endsWith('.yaml') ||
-        swaggerFilePath.toLowerCase().endsWith('.yml')) {
-      final yamlDoc = loadYaml(fileContent);
-      parsedData = yamlToMap(yamlDoc);
-    } else {
-      parsedData = jsonDecode(fileContent);
-    }
+    final generator = DtoGenerator(
+      swaggerFilePath: args[0],
+      outputDirPath: args.length > 1 ? args[1] : null,
+    );
+
+    await generator.generate();
+    print('\nDTO generation complete!');
   } catch (e) {
-    print('Error parsing file: $e');
+    print('Error: $e');
     exit(1);
   }
-
-  // 4. Ensure we have a Map<String, dynamic> to work with.
-  Map<String, dynamic> swagger;
-  if (parsedData is Map<String, dynamic>) {
-    swagger = parsedData;
-  } else if (parsedData is List) {
-    if (parsedData.isNotEmpty) {
-      print("Input JSON is a list. Inferring schema from first element.");
-      // Wrap the inferred schema in a map to continue processing.
-      swagger = {"InferredDto": inferSchema(parsedData.first)};
-    } else {
-      print("Input JSON is an empty list. Nothing to infer.");
-      exit(1);
-    }
-  } else {
-    print("Unexpected data format.");
-    exit(1);
-  }
-
-  // 5. Look for schema definitions.
-  var definitions = swagger['components']?['schemas'] ?? swagger['definitions'];
-
-  // 6. If definitions are missing, try to infer them from example responses.
-  if (definitions == null) {
-    if (swagger.containsKey("paths")) {
-      dynamic example;
-      final paths = swagger["paths"] as Map<String, dynamic>;
-      // Iterate through the paths and HTTP methods to find an example.
-      for (final pathEntry in paths.entries) {
-        final pathValue = pathEntry.value;
-        if (pathValue is Map<String, dynamic>) {
-          for (final methodEntry in pathValue.entries) {
-            final methodValue = methodEntry.value;
-            if (methodValue is Map<String, dynamic> &&
-                methodValue.containsKey("responses")) {
-              final responses =
-                  methodValue["responses"] as Map<String, dynamic>;
-              for (final responseEntry in responses.entries) {
-                final responseValue = responseEntry.value;
-                if (responseValue is Map<String, dynamic> &&
-                    responseValue.containsKey("content")) {
-                  final content =
-                      responseValue["content"] as Map<String, dynamic>;
-                  if (content.containsKey("application/json")) {
-                    final appJson =
-                        content["application/json"] as Map<String, dynamic>;
-                    // Look for an example.
-                    if (appJson.containsKey("example")) {
-                      example = appJson["example"];
-                      break;
-                    } else if (appJson.containsKey("schema") &&
-                        appJson["schema"] is Map<String, dynamic>) {
-                      final schemaPart =
-                          appJson["schema"] as Map<String, dynamic>;
-                      if (schemaPart.containsKey("example")) {
-                        example = schemaPart["example"];
-                        break;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            if (example != null) break;
-          }
-        }
-        if (example != null) break;
-      }
-      if (example != null) {
-        print(
-            "No global schemas found. Inferred schema from example response.");
-        definitions = {"InferredDto": inferSchema(example)};
-      }
-    } else {
-      // If there are no paths, assume the entire file is the example.
-      print(
-          "No global schemas or paths found. Inferring schema from entire JSON file.");
-      definitions = {"InferredDto": inferSchema(swagger)};
-    }
-  }
-
-  if (definitions == null) {
-    print('No schemas could be inferred from the file.');
-    exit(1);
-  }
-
-  // 7. Create mappings for class names.
-  // We'll use schemaToClassName to track both global and inline DTOs.
-  final Map<String, String> schemaToClassName = {};
-  for (final key in definitions.keys) {
-    final className = _sanitizeClassName(key);
-    schemaToClassName[key] = className;
-  }
-
-  // 8. Generate a Dart file for each schema (global and inline).
-  final Set<String> processedKeys = {};
-  while (processedKeys.length < schemaToClassName.length) {
-    final newKeys = schemaToClassName.keys
-        .where((k) => !processedKeys.contains(k))
-        .toList();
-    for (final key in newKeys) {
-      final className = schemaToClassName[key]!;
-      final schema = definitions[key] as Map<String, dynamic>;
-      // For JSON input, collect inline nested classes in this map.
-      final inlineNestedDtos =
-          isJsonInput ? <String, Map<String, dynamic>>{} : null;
-      final dtoCode = generateDtoClass(className, schema, definitions,
-          schemaToClassName, <String>{}, isJsonInput,
-          inlineNestedDtos: inlineNestedDtos);
-      // Generate file name using snake_case.
-      final fileName = '${_camelCaseToSnakeCase(className)}.dart';
-      final outputFile = File('${outputDir.path}/$fileName');
-      outputFile.writeAsStringSync(dtoCode);
-      print('Generated: ${outputFile.path}');
-      processedKeys.add(key);
-    }
-  }
-
-  print('\nDTO generation complete!');
 }
 
 /// Recursively converts a YAML document into standard Dart objects.
@@ -335,7 +202,7 @@ String generateInlineNestedClass(
   buffer.writeln('class $className {');
 
   properties.forEach((propName, propSchema) {
-    // For nested inline classes, we use a simple mapping (we don’t further inline nested objects here)
+    // For nested inline classes, we use a simple mapping (we don't further inline nested objects here)
     final dartType = _mapSwaggerTypeToDartType(propSchema, {}, {}, <String>{},
         propertyName: propName, isJsonInput: isJsonInput);
     final isRequired = requiredProps.contains(propName);
