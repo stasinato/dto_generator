@@ -1,3 +1,16 @@
+<!--
+This README describes the package. If you publish this package to pub.dev,
+this README's contents appear on the landing page for your package.
+
+For information about how to write a good package README, see the guide for
+[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+
+For general information about developing packages, see the Dart guide for
+[creating packages](https://dart.dev/guides/libraries/create-packages)
+and the Flutter guide for
+[developing packages and plugins](https://flutter.dev/to/develop-packages).
+-->
+
 # DTO Generator
 
 A Dart package that generates Data Transfer Object (DTO) classes from OpenAPI/Swagger specifications. The generated classes are annotated with `@JsonSerializable` for easy JSON serialization/deserialization.
@@ -24,7 +37,7 @@ dev_dependencies:
 
 ## Usage
 
-You can use the package in two ways:
+You can use the package in those ways:
 
 ### Command Line
 
@@ -33,10 +46,10 @@ You can use the package in two ways:
 dart run dto_generator swagger.yaml
 
 # Specify output directory
-dart run dto_generator swagger.yaml lib/models
+dart run dto_generator name_file.yaml lib/models
 
 # Use JSON input
-dart run dto_generator swagger.json lib/models
+dart run dto_generator name_file.json lib/models
 ```
 
 ## Generated Code Example
@@ -84,15 +97,8 @@ class User {
 }
 ```
 
-## Configuration
-
-The generator supports several features that can be controlled:
-
-- Automatic conversion of property names to proper Dart field names
-- Handling of required vs optional fields
-- Special handling of date-time fields
-- Inlining of small nested objects (3 properties or fewer)
-- Deduplication of similar schemas
+After checking generated code, you can run generator as usually:
+dart run build_runner build --delete-conflicting-outputs
 
 ## Contributing
 

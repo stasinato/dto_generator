@@ -1,9 +1,10 @@
 name: dto_generator
 description: A Dart package that generates Data Transfer Object (DTO) classes from OpenAPI/Swagger specifications
 version: 1.0.0
+repository: https://github.com/stasinato/dto_generator
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ^3.5.4
 
 dependencies:
   yaml: ^3.1.2

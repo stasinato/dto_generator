@@ -1,0 +1,8 @@
+# Basic usage
+dart run dto_generator swagger.yaml
+
+# Specify output directory
+dart run dto_generator name_file.yaml lib/models
+
+# Use JSON input
+dart run dto_generator name_file.json lib/models
