@@ -29,8 +29,8 @@ String mapSwaggerTypeToDartType(
     final refName = refParts.last;
     final refClassName = schemaToClassName[refName];
     if (refClassName != null) {
-      imports.add('${camelCaseToSnakeCase(refClassName)}.dart');
-      return refClassName;
+      imports.add('${camelCaseToSnakeCase(refClassName)}_response_dto.dart');
+      return '${refClassName}ResponseDto';
     }
     return 'dynamic';
   }
@@ -50,7 +50,7 @@ String mapSwaggerTypeToDartType(
                 !inlineNestedDtos.containsKey(nestedClassName)) {
               inlineNestedDtos[nestedClassName] = schema;
             }
-            return nestedClassName;
+            return '${nestedClassName}ResponseDto';
           } else {
             // For larger objects in JSON, use a generic map.
             return 'Map<String, dynamic>';
@@ -60,8 +60,9 @@ String mapSwaggerTypeToDartType(
           final signature = computeSchemaSignature(schema);
           if (_inlineSchemaSignatures.containsKey(signature)) {
             final existingClassName = _inlineSchemaSignatures[signature]!;
-            imports.add('${camelCaseToSnakeCase(existingClassName)}.dart');
-            return existingClassName;
+            imports.add(
+                '${camelCaseToSnakeCase(existingClassName)}_response_dto.dart');
+            return '${existingClassName}ResponseDto';
           } else {
             String newClassName = sanitizeClassName(propertyName);
 
@@ -70,8 +71,9 @@ String mapSwaggerTypeToDartType(
               schemaToClassName[newClassName] = newClassName;
             }
             _inlineSchemaSignatures[signature] = newClassName;
-            imports.add('${camelCaseToSnakeCase(newClassName)}.dart');
-            return newClassName;
+            imports
+                .add('${camelCaseToSnakeCase(newClassName)}_response_dto.dart');
+            return '${newClassName}ResponseDto';
           }
         }
       }
@@ -85,7 +87,10 @@ String mapSwaggerTypeToDartType(
           final itemClassName = capitalize(propertyName);
           return 'List<${itemClassName}ResponseDto>';
         }
-        return 'List<${mapSwaggerTypeToDartType(itemSchema, definitions, schemaToClassName, imports, propertyName: propertyName, isJsonInput: isJsonInput)}>';
+        final itemType = mapSwaggerTypeToDartType(
+            itemSchema, definitions, schemaToClassName, imports,
+            propertyName: propertyName, isJsonInput: isJsonInput);
+        return 'List<$itemType>';
       }
       return 'List<dynamic>';
 

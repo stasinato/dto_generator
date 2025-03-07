@@ -297,7 +297,7 @@ class DtoGenerator {
               itemSchema,
               definitions,
               schemaToClassName,
-              Set<String>(),
+              <String>{},
               isJsonInput,
               nestedDtos: nestedDtos,
               parentClassName: className,
@@ -342,7 +342,7 @@ class DtoGenerator {
             // Simple nested object - include in the same file
             nestedClasses.writeln();
             nestedClasses.writeln('@JsonSerializable()');
-            nestedClasses.writeln('class $nestedClassName {');
+            nestedClasses.writeln('class ${nestedClassName}ResponseDto {');
 
             final nestedRequired =
                 propSchema['required'] as List<dynamic>? ?? [];
@@ -369,7 +369,7 @@ class DtoGenerator {
             });
 
             // Constructor
-            nestedClasses.write('\n  const $nestedClassName({');
+            nestedClasses.write('\n  const ${nestedClassName}ResponseDto({');
             bool firstField = true;
             for (final nestedPropName in nestedProps.keys) {
               final dartFieldName = toDartFieldName(nestedPropName);
@@ -387,11 +387,12 @@ class DtoGenerator {
             // fromJson / toJson methods
             nestedClasses.writeln();
             nestedClasses.writeln(
-                '  factory $nestedClassName.fromJson(Map<String, dynamic> json) =>');
-            nestedClasses.writeln('      _\$${nestedClassName}FromJson(json);');
+                '  factory ${nestedClassName}ResponseDto.fromJson(Map<String, dynamic> json) =>');
+            nestedClasses.writeln(
+                '      _\$${nestedClassName}ResponseDtoFromJson(json);');
             nestedClasses.writeln();
             nestedClasses.writeln(
-                '  Map<String, dynamic> toJson() => _\$${nestedClassName}ToJson(this);');
+                '  Map<String, dynamic> toJson() => _\$${nestedClassName}ResponseDtoToJson(this);');
             nestedClasses.writeln('}');
           } else {
             // Complex nested object with its own nesting - create a separate file
@@ -404,7 +405,7 @@ class DtoGenerator {
               propSchema,
               definitions,
               schemaToClassName,
-              Set<String>(),
+              <String>{},
               isJsonInput,
               nestedDtos: nestedDtos,
               parentClassName: fullClassName,
@@ -412,8 +413,8 @@ class DtoGenerator {
 
             if (nestedDtos != null) {
               nestedDtos[fullClassName] = nestedCode;
-              importsBuffer
-                  .writeln("import '${_createDtoFileName(fullClassName)}';");
+              importsBuffer.writeln(
+                  "import '${camelCaseToSnakeCase(fullClassName)}_response_dto.dart';");
             }
           }
         }
@@ -429,41 +430,10 @@ class DtoGenerator {
       if (propSchema is Map<String, dynamic> &&
           propSchema['type'] == 'object' &&
           propSchema['properties'] is Map) {
-        final nestedProps = propSchema['properties'] as Map<String, dynamic>;
-
-        bool checkDeepNesting(Map<String, dynamic> props) {
-          return props.values.any((prop) {
-            if (prop is Map<String, dynamic>) {
-              if (prop['type'] == 'array') {
-                final items = prop['items'];
-                if (items is Map<String, dynamic> &&
-                    items['type'] == 'object' &&
-                    items['properties'] is Map) {
-                  return true;
-                }
-              }
-              if (prop['type'] == 'object' && prop['properties'] is Map) {
-                return checkDeepNesting(
-                    prop['properties'] as Map<String, dynamic>);
-              }
-            }
-            return false;
-          });
-        }
-
-        final hasDeepNesting = checkDeepNesting(nestedProps);
         final nestedClassName = capitalize(toDartFieldName(propName));
 
-        if (hasDeepNesting) {
-          // Use full name for complex nested types
-          final fullClassName = parentClassName != null
-              ? '$parentClassName$nestedClassName'
-              : nestedClassName;
-          dartType = '${fullClassName}ResponseDto';
-        } else {
-          // Use simple name for basic nested types
-          dartType = nestedClassName;
-        }
+        // Always append ResponseDto to nested object types
+        dartType = '${nestedClassName}ResponseDto';
       } else {
         dartType = mapSwaggerTypeToDartType(
           propSchema,
@@ -520,7 +490,10 @@ class DtoGenerator {
 
     // Prepend imports
     for (final import in imports) {
-      final importPath = import.replaceAll('.dart', '_response_dto.dart');
+      // Remove any existing _response_dto suffix before adding it once
+      final importPath = import.endsWith('_response_dto.dart')
+          ? import
+          : import.replaceAll('.dart', '_response_dto.dart');
       importsBuffer.writeln("import '$importPath';");
     }
     return buffer.toString().replaceFirst('\n', '\n$importsBuffer\n');
