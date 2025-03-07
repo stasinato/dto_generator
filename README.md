@@ -30,6 +30,12 @@ A Dart package that generates Data Transfer Object (DTO) classes from OpenAPI/Sw
 
 Add this package to your project's `dev_dependencies`:
 
+```bash
+dart pub add dev:build_runner
+```
+
+or
+
 ```yaml
 dev_dependencies:
   dto_generator: ^1.0.0
