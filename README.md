@@ -98,7 +98,10 @@ class User {
 ```
 
 After checking generated code, you can run generator as usually:
+
+```bash
 dart run build_runner build --delete-conflicting-outputs
+```
 
 ## Contributing
 
