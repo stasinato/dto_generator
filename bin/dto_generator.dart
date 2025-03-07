@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:dto_generator/dto_generator.dart';
+import 'package:dto_generator/src/generator.dart';
 
 /// A Dart script that parses a Swagger/OpenAPI file (in JSON or YAML format)
 /// and generates DTO classes annotated with @JsonSerializable.

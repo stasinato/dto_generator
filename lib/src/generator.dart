@@ -396,7 +396,7 @@ class DtoGenerator {
           } else {
             // Complex nested object with its own nesting - create a separate file
             final fullClassName = parentClassName != null
-                ? '${parentClassName}${nestedClassName}'
+                ? '$parentClassName$nestedClassName'
                 : nestedClassName;
 
             final nestedCode = _generateDtoClass(
@@ -457,7 +457,7 @@ class DtoGenerator {
         if (hasDeepNesting) {
           // Use full name for complex nested types
           final fullClassName = parentClassName != null
-              ? '${parentClassName}${nestedClassName}'
+              ? '$parentClassName$nestedClassName'
               : nestedClassName;
           dartType = '${fullClassName}ResponseDto';
         } else {

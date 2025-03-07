@@ -47,12 +47,8 @@ String mapSwaggerTypeToDartType(
         if (isJsonInput) {
           // For JSON input, if the object is small, inline it as a nested class.
           if (isSmallNestedObject(schema)) {
-            String nestedClassName;
-            if (propertyName != null) {
-              nestedClassName = sanitizeClassName(propertyName);
-            } else {
-              nestedClassName = 'InlineDto${_inlineDtoCounter++}';
-            }
+            String nestedClassName = sanitizeClassName(propertyName);
+
             if (inlineNestedDtos != null &&
                 !inlineNestedDtos.containsKey(nestedClassName)) {
               inlineNestedDtos[nestedClassName] = schema;
@@ -70,12 +66,8 @@ String mapSwaggerTypeToDartType(
             imports.add('${camelCaseToSnakeCase(existingClassName)}.dart');
             return existingClassName;
           } else {
-            String newClassName;
-            if (propertyName != null) {
-              newClassName = sanitizeClassName(propertyName);
-            } else {
-              newClassName = 'InlineDto${_inlineDtoCounter++}';
-            }
+            String newClassName = sanitizeClassName(propertyName);
+
             if (!schemaToClassName.containsValue(newClassName)) {
               definitions[newClassName] = schema;
               schemaToClassName[newClassName] = newClassName;

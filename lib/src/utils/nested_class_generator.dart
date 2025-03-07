@@ -1,5 +1,4 @@
-import 'package:dto_generator/src/utils/string_utils.dart';
-import 'package:dto_generator/src/utils/type_mapper.dart';
+import '../../dto_generator.dart';
 
 /// Generates a Dart class for an inline nested DTO
 String generateInlineNestedClass(

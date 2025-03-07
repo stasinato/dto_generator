@@ -17,4 +17,4 @@ dev_dependencies:
   lints: ^2.1.1
 
 executables:
-  dto_generator: generate_dtos
+  dto_generator: dto_generator
