@@ -112,7 +112,3 @@ dart run build_runner build --delete-conflicting-outputs
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-```bash
-dart pub global activate dto_generator
-```
