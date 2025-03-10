@@ -1,4 +1,8 @@
-## 1.0.3
+## 1.0.5
+
+- Fix: generation from json
+
+## 1.0.4
 
 - Cleaned readme file
 

@@ -167,7 +167,7 @@ class DtoGenerator {
   /// Normalizes the input data into a Map<String, dynamic>
   Map<String, dynamic> _normalizeInput(dynamic parsedData) {
     if (parsedData is Map<String, dynamic>) {
-      return parsedData;
+      return inferSchema(parsedData);
     } else if (parsedData is List) {
       if (parsedData.isNotEmpty) {
         print("Input JSON is a list. Creating DTO from first item.");
@@ -184,13 +184,7 @@ class DtoGenerator {
   Map<String, dynamic>? _getOrInferDefinitions(Map<String, dynamic> swagger) {
     // For direct JSON input (not OpenAPI/Swagger), use the schema directly
     if (isJsonInput) {
-      return {
-        "InferredDto": {
-          "type": "object",
-          "properties": swagger["properties"] ?? {},
-          "required": swagger["required"] ?? []
-        }
-      };
+      return {"InferredDto": swagger};
     }
 
     // For OpenAPI/Swagger, try to get from components or definitions

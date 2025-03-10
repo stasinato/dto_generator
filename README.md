@@ -38,7 +38,7 @@ or
 
 ```yaml
 dev_dependencies:
-  dto_generator: ^1.0.4
+  dto_generator: ^1.0.5
 ```
 
 ## Usage
