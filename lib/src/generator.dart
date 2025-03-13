@@ -155,7 +155,15 @@ class DtoGenerator {
     try {
       if (!isJsonInput) {
         final yamlDoc = loadYaml(fileContent);
-        return yamlToMap(yamlDoc);
+        final result = yamlToMap(yamlDoc);
+
+        // Validate that the result is a Map for YAML input
+        if (result is! Map<String, dynamic>) {
+          throw Exception(
+              'YAML content must be a valid object structure. Found: ${result.runtimeType}');
+        }
+
+        return result;
       } else {
         return jsonDecode(fileContent);
       }
@@ -167,16 +175,25 @@ class DtoGenerator {
   /// Normalizes the input data into a Map<String, dynamic>
   Map<String, dynamic> _normalizeInput(dynamic parsedData) {
     if (parsedData is Map<String, dynamic>) {
+      // Use the data directly for OpenAPI format if it has schemas
+      if ((parsedData.containsKey('components') &&
+              parsedData['components'] is Map<String, dynamic> &&
+              parsedData['components'].containsKey('schemas')) ||
+          parsedData.containsKey('definitions')) {
+        return parsedData;
+      }
+
+      // Otherwise infer schema
       return inferSchema(parsedData);
     } else if (parsedData is List) {
       if (parsedData.isNotEmpty) {
-        print("Input JSON is a list. Creating DTO from first item.");
+        print("Input is a list. Creating DTO from first item.");
         return inferSchema(parsedData.first);
       } else {
-        throw Exception("Input JSON is an empty list. Nothing to infer.");
+        throw Exception("Input is an empty list. Nothing to infer.");
       }
     } else {
-      throw Exception("Unexpected data format.");
+      throw Exception("Unexpected data format: ${parsedData.runtimeType}");
     }
   }
 
@@ -188,10 +205,17 @@ class DtoGenerator {
     }
 
     // For OpenAPI/Swagger, try to get from components or definitions
-    var definitions =
-        swagger['components']?['schemas'] ?? swagger['definitions'];
+    Map<String, dynamic>? definitions;
 
-    if (definitions == null) {
+    if (swagger.containsKey('components') &&
+        swagger['components'] is Map<String, dynamic> &&
+        swagger['components'].containsKey('schemas')) {
+      definitions = Map<String, dynamic>.from(swagger['components']['schemas']);
+    } else if (swagger.containsKey('definitions')) {
+      definitions = Map<String, dynamic>.from(swagger['definitions']);
+    }
+
+    if (definitions == null || definitions.isEmpty) {
       if (swagger.containsKey("paths")) {
         final example = _findExampleFromPaths(swagger["paths"]);
         if (example != null) {
